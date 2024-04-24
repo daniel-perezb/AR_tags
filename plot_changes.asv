@@ -1,0 +1,46 @@
+% Function just for visialization
+
+function plot_changes(Points, master, origin_2_points,master_2_points)
+
+key = 'a';
+
+while key ~='s'
+    
+    key = input('Transform point to centre (t), Transform point to master(m) stop (t)');
+    if key == 't'
+        num = input('Input number of point to change');
+         new_location = [Points(num).location,1] * origin_2_points(num).translation_matrix;
+        Points(num).location = new_location(1:3);
+    elseif key =='m'
+        num = input('Input number of point to change');
+        if num == master
+            num = input('Please select another number than master');
+        end
+        new_location = [Points(num).location,1] * master_2_points(num).translation_matrix;
+        Points(num).location = new_location(1:3);
+        Points(num).direction = Points(master).direction;
+    elseif key =='s'
+        continue
+    else
+        key = input('Incorrect Input please enter the following: Transform point to centre (t), Transform point to master(m) stop (t)');
+    end
+
+    axisLength = 0.5; % Length of the axes to draw
+
+    for i = 1:size(Points,2)
+        plot3(Points(i).location(1), Points(i).location(2), Points(i).location(3), 'ok', 'MarkerSize', 10, 'MarkerFaceColor', 'k');
+        % Draw axes lines from point
+        quiver3(Points(i).location(1), Points(i).location(2), Points(i).location(3), Points(i).direction(1,1)*axisLength, Points(i).direction(1,2)*axisLength, Points(i).direction(1,3)*axisLength, 'r', 'LineWidth', 2);
+        quiver3(Points(i).location(1), Points(i).location(2), Points(i).location(3), Points(i).direction(2,1)*axisLength, Points(i).direction(2,2)*axisLength, Points(i).direction(2,3)*axisLength, 'g', 'LineWidth', 2);
+        quiver3(Points(i).location(1), Points(i).location(2), Points(i).location(3), Points(i).direction(3,1)*axisLength, Points(i).direction(3,2)*axisLength, Points(i).direction(3,3)*axisLength, 'b', 'LineWidth', 2);
+        hold on
+    end
+    drawnow
+
+    grid on;
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+    axis equal; % Keep aspect ratio equal for clarity
+    view(3); % Set a 3D view
+end
