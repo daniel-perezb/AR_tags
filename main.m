@@ -17,6 +17,11 @@ master = 2;
 test_1_station = 2;
 test_2_station = 1;
 
+% Invert axis based in TT readings
+inv_x = 0;
+inv_y = 1;
+inv_z = 1;
+
 %% Read and Process Markers from First File
 [Points1, Markers1] = readMarkers(filename1, n_markers1);
 
@@ -29,27 +34,37 @@ test_2_station = 1;
 %% Compute Distances and Transforms for Second Set of Markers
 [points_2_centre2, points_2_master2] = calculate_transforms(Markers2, test_2_station);
 
-%% Extract Ground Truth Stations for Both Scans
-A = [horzcat(Markers1(test_1_station).orientation, Markers1(test_1_station).location'); 0, 0, 0, 1];
-B = [horzcat(Markers2(test_2_station).orientation, Markers2(test_2_station).location'); 0, 0, 0, 1];
+%% Calculate transform between both scans
+test_1_points = Points1((test_1_station-1)*4 + 1:test_1_station*4,:);
+test_2_points = Points2((test_2_station-1)*4 + 1:test_2_station*4,:);
+[R,t] = rigid_transform_3D(test_2_points', test_1_points');
+T_matrix = [R,t;0,0,0,1];
 
-Trans = A * pinv(B);
-
-%% Transform and Merge Marker Sets
-xc = Trans * B;
+% Transform and Merge Marker Sets
 Markers1(7:end) = [];
 
 for i = 1:n_markers2
     if i == test_2_station
         continue
     else
-        j = size(Markers1, 2);
-        C = [horzcat(Markers2(i).orientation, Markers2(i).location'); 0, 0, 0, 1];
-        Transformed_Points = Trans * C;
-        Markers1(j + 1).location = Transformed_Points(1:3, 4)';
-        Markers1(j + 1).orientation = Transformed_Points(1:3, 1:3);
+        C = [Markers2(i).orientation, Markers2(i).location'; 0, 0, 0, 1];
+        Transformed_Points = T_matrix * C;
+        Markers1(length(Markers1) + 1).location = Transformed_Points(1:3, 4)';
+        Markers1(length(Markers1)).orientation = Transformed_Points(1:3, 1:3);
+
+        if inv_x
+            Markers1(length(Markers1)).orientation(:,1) = -Markers1(length(Markers1)).orientation(:,1);
+        end
+        if inv_y
+            Markers1(length(Markers1)).orientation(:,2) = -Markers1(length(Markers1)).orientation(:,2);
+        end
+        if inv_z
+            Markers1(length(Markers1)).orientation(:,3) = -Markers1(length(Markers1)).orientation(:,3);
+        end
+    
     end
 end
+
 
 %% Plot Merged Markers
 plot_markers(Markers1, master);
@@ -73,34 +88,5 @@ for i = 1:size(Markers1,2)
 end
 
 %% Write output file
-save_markers(Markers1, out_file)
+% save_markers(Markers1, out_file)
 
-%% Optional Testing Functions (commented out)
-% % Function for loading data and testing
-% load('data/Test_10-04-24/IMG_4692.mat')
-% poses.Translation = poses.Translation * .001; % Transform to meters
-% human_location = norm([0, 0, 0] - poses.Translation); % Check distance from origin (phone)
-% difference_human_camera = norm(human_location - points_2_master1(m).distance); % Error between theodolite and camera
-
-% % Function to read extra points (commented out)
-% data1 = readtable(filename1, 'FileType', 'text', 'VariableNamingRule', 'preserve', 'Delimiter', ',');
-% data2 = readtable(filename2, 'FileType', 'text', 'VariableNamingRule', 'preserve', 'Delimiter', ',');
-% for i = 1:2
-%     A(:, end + 1) = [data1.Var2(i + 24), data1.Var3(i + 24), data1.Var4(i + 24)]' - [data1.Var2(end), data1.Var3(end), data1.Var4(end)]';
-%     B(:, end + 1) = [data2.Var2(i + 8), data2.Var3(i + 8), data2.Var4(i + 8)]' - [data2.Var2(end), data2.Var3(end), data2.Var4(end)]';
-% end
-
-% % Optimal rotation and translation between both sets of points (commented out)
-% B = Points1(5:8, :)';
-% A = Points2(1:4, :)';
-% [R, t] = rigid_transform_3D(A, B);
-% transformation_matrix = [R, t; 0, 0, 0, 1];
-% Markers1(7:end) = [];
-% for i = 1:n_markers2
-%     j = size(Markers1, 2);
-%     C = [horzcat(Markers2(i).orientation, Markers2(i).location'); 0, 0, 0, 1];
-%     Transformed_Points = transformation_matrix * C;
-%     Markers1(j + 1).location = Transformed_Points(1:3, 4)';
-%     Markers1(j + 1).orientation = Transformed_Points(1:3, 1:3);
-% end
-% plot_markers(Markers1, master1);
