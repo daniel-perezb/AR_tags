@@ -17,8 +17,6 @@ function [Points, Markers] = readMarkers(filename, n_markers)
     % Initialize an array for centroids and orientation matrices
     Markers = struct('location', {}, 'orientation', {});
     
-    num = [];
-    
     % Original point if axes are different to the ones specified
     % Otherwise change to original_point = [0,0,0];
     original_point = data(end,2:end);
@@ -34,9 +32,6 @@ function [Points, Markers] = readMarkers(filename, n_markers)
             point = data(i+j,2:end).Variables;
             points(j+1, :) = point - original_point;
             Points(end+1, :) = point - original_point;
-            % point = str2num(cell2mat(data.Var2(i+j)));
-            % points(j+1, :) = point;
-            num(end+1) = i+j;
         end
     
         % This has to be changed if only 3 points are detected
@@ -44,8 +39,8 @@ function [Points, Markers] = readMarkers(filename, n_markers)
     
         % Compute vectors for orientation
         v1 = points(2, :) - points(4, :); % X coordinante from point 1 to 3
-        v3 = points(3, :) - points(1, :); % X coordinante from point 2 to 4
-        v2 = cross(v1, v3); % X coordinante Cross product to get the third orthogonal vector
+        v2 = points(1, :) - points(3, :); % X coordinante from point 2 to 4
+        v3 = cross(v2, v1); % X coordinante Cross product to get the third orthogonal vector
     
         % Normalize vectors to make them unit vectors
         v1 = v1 / norm(v1);
